@@ -34,35 +34,37 @@ import java.util.Set;
 
 
 public class RangerPluginConfig extends RangerConfiguration {
+
     private static final Logger LOG = Logger.getLogger(RangerPluginConfig.class);
 
     private static final char RANGER_TRUSTED_PROXY_IPADDRESSES_SEPARATOR_CHAR = ',';
 
-    private final String                    serviceType;
-    private final String                    serviceName;
-    private final String                    appId;
-    private final String                    clusterName;
-    private final String                    clusterType;
+    private final String serviceType;
+    private final String serviceName;
+    private final String appId;
+    private final String clusterName;
+    private final String clusterType;
     private final RangerPolicyEngineOptions policyEngineOptions;
-    private final boolean                   useForwardedIPAddress;
-    private final String[]                  trustedProxyAddresses;
-    private final String                    propertyPrefix;
-    private       Set<String>               auditExcludedUsers  = Collections.emptySet();
-    private       Set<String>               auditExcludedGroups = Collections.emptySet();
-    private       Set<String>               auditExcludedRoles  = Collections.emptySet();
-    private       Set<String>               superUsers          = Collections.emptySet();
-    private       Set<String>               superGroups         = Collections.emptySet();
+    private final boolean useForwardedIPAddress;
+    private final String[] trustedProxyAddresses;
+    private final String propertyPrefix;
+    private Set<String> auditExcludedUsers = Collections.emptySet();
+    private Set<String> auditExcludedGroups = Collections.emptySet();
+    private Set<String> auditExcludedRoles = Collections.emptySet();
+    private Set<String> superUsers = Collections.emptySet();
+    private Set<String> superGroups = Collections.emptySet();
 
 
-    public RangerPluginConfig(String serviceType, String serviceName, String appId, String clusterName, String clusterType, RangerPolicyEngineOptions policyEngineOptions) {
+    public RangerPluginConfig(String serviceType, String serviceName, String appId, String clusterName,
+            String clusterType, RangerPolicyEngineOptions policyEngineOptions) {
         super();
 
         addResourcesForServiceType(serviceType);
 
-        this.serviceType    = serviceType;
-        this.appId          = StringUtils.isEmpty(appId) ? serviceType : appId;
+        this.serviceType = serviceType;
+        this.appId = StringUtils.isEmpty(appId) ? serviceType : appId;
         this.propertyPrefix = "ranger.plugin." + serviceType;
-        this.serviceName    = StringUtils.isEmpty(serviceName) ? this.get(propertyPrefix + ".service.name") : serviceName;
+        this.serviceName = StringUtils.isEmpty(serviceName) ? this.get(propertyPrefix + ".service.name") : serviceName;
 
         addResourcesForServiceName(this.serviceType, this.serviceName);
 
@@ -84,10 +86,11 @@ public class RangerPluginConfig extends RangerConfiguration {
             }
         }
 
-        this.clusterName           = clusterName;
-        this.clusterType           = clusterType;
+        this.clusterName = clusterName;
+        this.clusterType = clusterType;
         this.useForwardedIPAddress = this.getBoolean(propertyPrefix + ".use.x-forwarded-for.ipaddress", false);
-        this.trustedProxyAddresses = StringUtils.split(trustedProxyAddressString, RANGER_TRUSTED_PROXY_IPADDRESSES_SEPARATOR_CHAR);
+        this.trustedProxyAddresses = StringUtils.split(trustedProxyAddressString,
+                RANGER_TRUSTED_PROXY_IPADDRESSES_SEPARATOR_CHAR);
 
         if (trustedProxyAddresses != null) {
             for (int i = 0; i < trustedProxyAddresses.length; i++) {
@@ -97,12 +100,15 @@ public class RangerPluginConfig extends RangerConfiguration {
 
         if (LOG.isDebugEnabled()) {
             LOG.debug(propertyPrefix + ".use.x-forwarded-for.ipaddress:" + useForwardedIPAddress);
-            LOG.debug(propertyPrefix + ".trusted.proxy.ipaddresses:[" + StringUtils.join(trustedProxyAddresses, ", ") + "]");
+            LOG.debug(propertyPrefix + ".trusted.proxy.ipaddresses:[" + StringUtils.join(trustedProxyAddresses, ", ")
+                    + "]");
         }
 
         if (useForwardedIPAddress && StringUtils.isBlank(trustedProxyAddressString)) {
-            LOG.warn("Property " + propertyPrefix + ".use.x-forwarded-for.ipaddress" + " is set to true, and Property " + propertyPrefix + ".trusted.proxy.ipaddresses" + " is not set");
-            LOG.warn("Ranger plugin will trust RemoteIPAddress and treat first X-Forwarded-Address in the access-request as the clientIPAddress");
+            LOG.warn("Property " + propertyPrefix + ".use.x-forwarded-for.ipaddress" + " is set to true, and Property "
+                    + propertyPrefix + ".trusted.proxy.ipaddresses" + " is not set");
+            LOG.warn(
+                    "Ranger plugin will trust RemoteIPAddress and treat first X-Forwarded-Address in the access-request as the clientIPAddress");
         }
 
         if (policyEngineOptions == null) {
@@ -112,6 +118,15 @@ public class RangerPluginConfig extends RangerConfiguration {
         }
 
         this.policyEngineOptions = policyEngineOptions;
+
+        if (propertyPrefix.toLowerCase().contains("spark")) {
+            // livy session spark config cache path like: /data/yarn/nm/usercache/test/filecache/1652/__spark_conf__.zip/__hadoop_conf__/
+            String sparkConfigCachePath = this.getClass().getClassLoader().getResource("").getPath();
+            if (sparkConfigCachePath.contains("cache")) {
+                String sparkCacheDir = sparkConfigCachePath + get(propertyPrefix + ".policy.cache.dir");
+                set(propertyPrefix + ".policy.cache.dir", sparkCacheDir);
+            }
+        }
 
         LOG.info(policyEngineOptions);
     }
@@ -153,17 +168,18 @@ public class RangerPluginConfig extends RangerConfiguration {
     }
 
     public void setAuditExcludedUsersGroupsRoles(Set<String> users, Set<String> groups, Set<String> roles) {
-        auditExcludedUsers  = CollectionUtils.isEmpty(users) ? Collections.emptySet() : new HashSet<>(users);
+        auditExcludedUsers = CollectionUtils.isEmpty(users) ? Collections.emptySet() : new HashSet<>(users);
         auditExcludedGroups = CollectionUtils.isEmpty(groups) ? Collections.emptySet() : new HashSet<>(groups);
-        auditExcludedRoles  = CollectionUtils.isEmpty(groups) ? Collections.emptySet() : new HashSet<>(roles);
+        auditExcludedRoles = CollectionUtils.isEmpty(groups) ? Collections.emptySet() : new HashSet<>(roles);
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("auditExcludedUsers=" + auditExcludedUsers + ", auditExcludedGroups=" + auditExcludedGroups + ", auditExcludedRoles=" + auditExcludedRoles);
+            LOG.debug("auditExcludedUsers=" + auditExcludedUsers + ", auditExcludedGroups=" + auditExcludedGroups
+                    + ", auditExcludedRoles=" + auditExcludedRoles);
         }
     }
 
     public void setSuperUsersGroups(Set<String> users, Set<String> groups) {
-        superUsers  = CollectionUtils.isEmpty(users) ? Collections.emptySet() : new HashSet<>(users);
+        superUsers = CollectionUtils.isEmpty(users) ? Collections.emptySet() : new HashSet<>(users);
         superGroups = CollectionUtils.isEmpty(groups) ? Collections.emptySet() : new HashSet<>(groups);
 
         if (LOG.isDebugEnabled()) {
@@ -176,11 +192,13 @@ public class RangerPluginConfig extends RangerConfiguration {
     }
 
     public boolean hasAuditExcludedGroup(Set<String> userGroups) {
-        return userGroups != null && userGroups.size() > 0 && auditExcludedGroups.size() > 0 && CollectionUtils.containsAny(userGroups, auditExcludedGroups);
+        return userGroups != null && userGroups.size() > 0 && auditExcludedGroups.size() > 0
+                && CollectionUtils.containsAny(userGroups, auditExcludedGroups);
     }
 
     public boolean hasAuditExcludedRole(Set<String> userRoles) {
-        return userRoles != null && userRoles.size() > 0 && auditExcludedRoles.size() > 0 && CollectionUtils.containsAny(userRoles, auditExcludedRoles);
+        return userRoles != null && userRoles.size() > 0 && auditExcludedRoles.size() > 0
+                && CollectionUtils.containsAny(userRoles, auditExcludedRoles);
     }
 
     public boolean isSuperUser(String userName) {
@@ -188,13 +206,14 @@ public class RangerPluginConfig extends RangerConfiguration {
     }
 
     public boolean hasSuperGroup(Set<String> userGroups) {
-        return userGroups != null && userGroups.size() > 0 && superGroups.size() > 0 && CollectionUtils.containsAny(userGroups, superGroups);
+        return userGroups != null && userGroups.size() > 0 && superGroups.size() > 0 && CollectionUtils.containsAny(
+                userGroups, superGroups);
     }
 
     private void addResourcesForServiceType(String serviceType) {
-        String auditCfg    = "ranger-" + serviceType + "-audit.xml";
+        String auditCfg = "ranger-" + serviceType + "-audit.xml";
         String securityCfg = "ranger-" + serviceType + "-security.xml";
-        String sslCfg 	   = "ranger-" + serviceType + "-policymgr-ssl.xml";
+        String sslCfg = "ranger-" + serviceType + "-policymgr-ssl.xml";
 
         if (!addResourceIfReadable(auditCfg)) {
             addAuditResource(serviceType);
@@ -212,9 +231,9 @@ public class RangerPluginConfig extends RangerConfiguration {
     // load service specific config overrides, if config files are available
     private void addResourcesForServiceName(String serviceType, String serviceName) {
         if (StringUtils.isNotBlank(serviceType) && StringUtils.isNotBlank(serviceName)) {
-            String serviceAuditCfg    = "ranger-" + serviceType + "-" + serviceName + "-audit.xml";
+            String serviceAuditCfg = "ranger-" + serviceType + "-" + serviceName + "-audit.xml";
             String serviceSecurityCfg = "ranger-" + serviceType + "-" + serviceName + "-security.xml";
-            String serviceSslCfg      = "ranger-" + serviceType + "-" + serviceName + "-policymgr-ssl.xml";
+            String serviceSslCfg = "ranger-" + serviceType + "-" + serviceName + "-policymgr-ssl.xml";
 
             addResourceIfReadable(serviceAuditCfg);
             addResourceIfReadable(serviceSecurityCfg);
@@ -222,14 +241,14 @@ public class RangerPluginConfig extends RangerConfiguration {
         }
     }
 
-    private void  addSecurityResource(String serviceType) {
-        if(LOG.isDebugEnabled()) {
-            LOG.debug("==> addSecurityResource(Service Type: " + serviceType );
+    private void addSecurityResource(String serviceType) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("==> addSecurityResource(Service Type: " + serviceType);
         }
 
         Configuration rangerConf = RangerLegacyConfigBuilder.getSecurityConfig(serviceType);
 
-        if (rangerConf != null ) {
+        if (rangerConf != null) {
             addResource(rangerConf);
         } else {
             if (LOG.isDebugEnabled()) {
@@ -238,14 +257,14 @@ public class RangerPluginConfig extends RangerConfiguration {
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("<= addSecurityResource(Service Type: " + serviceType );
+            LOG.debug("<= addSecurityResource(Service Type: " + serviceType);
         }
     }
 
-    private void  addAuditResource(String serviceType) {
+    private void addAuditResource(String serviceType) {
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("==> addAuditResource(Service Type: " + serviceType );
+            LOG.debug("==> addAuditResource(Service Type: " + serviceType);
         }
 
         try {
@@ -260,10 +279,10 @@ public class RangerPluginConfig extends RangerConfiguration {
             }
 
         } catch (Throwable t) {
-            LOG.warn("Unable to find Audit Config for "  + serviceType + " Auditing not enabled !" );
+            LOG.warn("Unable to find Audit Config for " + serviceType + " Auditing not enabled !");
 
-            if(LOG.isDebugEnabled()) {
-                LOG.debug("Unable to find Audit Config for "  + serviceType + " Auditing not enabled !" + t);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Unable to find Audit Config for " + serviceType + " Auditing not enabled !" + t);
             }
         }
 
@@ -278,7 +297,9 @@ public class RangerPluginConfig extends RangerConfiguration {
         }
 
         try {
-            String sslConfigFile = this.get(RangerLegacyConfigBuilder.getPropertyName(RangerConfigConstants.RANGER_PLUGIN_REST_SSL_CONFIG_FILE, serviceType));
+            String sslConfigFile = this.get(
+                    RangerLegacyConfigBuilder.getPropertyName(RangerConfigConstants.RANGER_PLUGIN_REST_SSL_CONFIG_FILE,
+                            serviceType));
 
             URL url = getSSLConfigResource(sslConfigFile);
             if (url != null) {
