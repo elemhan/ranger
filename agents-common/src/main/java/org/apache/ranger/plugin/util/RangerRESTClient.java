@@ -288,6 +288,12 @@ public class RangerRESTClient {
             }
 
         }
+
+        String username = config.get("ranger.plugin.spark.policy.rest.username");
+        String password = config.get("ranger.plugin.spark.policy.rest.password");
+        if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
+            setBasicAuthInfo(username, password);
+        }
     }
 
     private KeyManager[] getKeyManagers() {
@@ -476,11 +482,12 @@ public class RangerRESTClient {
         ClientResponse finalResponse = null;
         int startIndex = this.lastKnownActiveUrlIndex;
         int currentIndex = 0;
-        LOG.warn("RangerAdminRESTClient get request start !!!");
         for (int index = 0; index < configuredURLs.size(); index++) {
             try {
                 currentIndex = (startIndex + index) % configuredURLs.size();
-                WebResource webResource = getBasicAuthClient("admin","xxx").resource(configuredURLs.get(currentIndex) + relativeUrl);
+
+                WebResource webResource = getBasicAuthClient(mUsername, mPassword)
+                        .resource(configuredURLs.get(currentIndex) + relativeUrl);
                 webResource = setQueryParams(webResource, params);
                 finalResponse = webResource.accept(RangerRESTUtils.REST_EXPECTED_MIME_TYPE)
                         .type(RangerRESTUtils.REST_MIME_TYPE_JSON).get(ClientResponse.class);
@@ -506,7 +513,8 @@ public class RangerRESTClient {
             try {
                 currentIndex = (startIndex + index) % configuredURLs.size();
 
-                WebResource webResource = getBasicAuthClient("admin","xxx").resource(configuredURLs.get(currentIndex) + relativeUrl);
+                WebResource webResource = getBasicAuthClient(mUsername, mPassword)
+                        .resource(configuredURLs.get(currentIndex) + relativeUrl);
                 webResource = setQueryParams(webResource, params);
                 finalResponse = webResource.accept(RangerRESTUtils.REST_EXPECTED_MIME_TYPE)
                         .type(RangerRESTUtils.REST_MIME_TYPE_JSON).post(ClientResponse.class, toJson(obj));
@@ -531,7 +539,8 @@ public class RangerRESTClient {
             try {
                 currentIndex = (startIndex + index) % configuredURLs.size();
 
-                WebResource webResource = getBasicAuthClient("admin","xxx").resource(configuredURLs.get(currentIndex) + relativeUrl);
+                WebResource webResource = getBasicAuthClient(mUsername, mPassword)
+                        .resource(configuredURLs.get(currentIndex) + relativeUrl);
                 webResource = setQueryParams(webResource, params);
 
                 finalResponse = webResource.accept(RangerRESTUtils.REST_EXPECTED_MIME_TYPE)
@@ -556,7 +565,8 @@ public class RangerRESTClient {
             try {
                 currentIndex = (startIndex + index) % configuredURLs.size();
 
-                WebResource webResource = getBasicAuthClient("admin","xxx").resource(configuredURLs.get(currentIndex) + relativeUrl);
+                WebResource webResource = getBasicAuthClient(mUsername, mPassword)
+                        .resource(configuredURLs.get(currentIndex) + relativeUrl);
                 webResource = setQueryParams(webResource, params);
                 finalResponse = webResource.accept(RangerRESTUtils.REST_EXPECTED_MIME_TYPE)
                         .type(RangerRESTUtils.REST_MIME_TYPE_JSON).put(ClientResponse.class, toJson(obj));
